@@ -1,0 +1,19 @@
+[project]
+name = "ai-diet-planner"
+version = "1.0.0"
+description = "AI-powered diet planning microservice using FastAPI and Gemini"
+requires-python = ">=3.11"
+
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "pydantic-settings",
+    "langchain",
+    "langchain-google-genai",
+    "python-dotenv",
+    "httpx"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
