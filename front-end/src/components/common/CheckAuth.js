@@ -13,7 +13,7 @@ const CheckAuth = ({ isAuthenticated, user, isLoading, children }) => {
 
     const getHomePath = () => {
       if (!user) return '/';
-      return user.role === 'admin' ? '/admin/dashboard' : '/user/home';
+      return user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
     };
 
     if (!isAuthenticated && (path.startsWith('/user') || path.startsWith('/admin'))) {
@@ -24,7 +24,7 @@ const CheckAuth = ({ isAuthenticated, user, isLoading, children }) => {
     if (isAuthenticated && user) {
       if (path.startsWith('/admin') && user.role !== 'admin') {
         toast.error("You don't have access to this page");
-        navigate('/user/home');
+        navigate('/user/dashboard');
         return;
       }
       if (path.startsWith('/user') && user.role === 'admin') {

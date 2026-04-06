@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logoutUser } from '../../store/auth';
+
 const UserSideBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,10 +23,6 @@ const UserSideBar = () => {
   const { user } = useSelector((state) => state.auth);
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
-
-
-
-
 
   const handleLogout = async () => {
     try {
@@ -41,52 +38,48 @@ const UserSideBar = () => {
     }
   };
 
-const menuItems = [
-  {
-    icon: Home,
-    label: 'Dashboard',
-    path: '/user/home',
-    description: 'Overview'
-  },
-  {
-    icon: Target,
-    label: 'Generate Plan',
-    path: '/user/diet',
-    description: 'Create diet plan'
-  },
-  {
-    icon: Clock,
-    label: 'History',
-    path: '/user/diet/history',
-    description: 'View past plans'
-  },
-  {
-  icon: MessageSquare,
-  label: 'Alternatives',
-  path: '/user/alternatives',
-  description: 'AI food suggestions'
-},
-  {
-    icon: TrendingUp,
-    label: 'Progress',
-    path: '/user/diet/progress',
-    description: 'Track improvement'
-  },
-  {
-    icon: User,
-    label: 'Profile',
-    path: '/user/profile',
-    description: 'Manage account'
-  }
-];
-const isActivePath = (path) => {
-  if (path === "/user/diet") {
-    return location.pathname === "/user/diet";
-  }
-  return location.pathname.startsWith(path);
-};
-  const activeGoals = stats ? stats.totalGoals - stats.completedGoals : 0;
+  const menuItems = [
+    {
+      icon: Home,
+      label: 'Dashboard',
+      path: '/user/dashboard',
+      description: 'Overview'
+    },
+    {
+      icon: Target,
+      label: 'Generate Plan',
+      path: '/user/diet',
+      description: 'Create diet plan'
+    },
+    {
+      icon: Clock,
+      label: 'History',
+      path: '/user/diet/history',
+      description: 'View past plans'
+    },
+    {
+      icon: MessageSquare,
+      label: 'Alternatives',
+      path: '/user/alternatives',
+      description: 'AI food suggestions'
+    },
   
+    {
+      icon: User,
+      label: 'Profile',
+      path: '/user/profile',
+      description: 'Manage account'
+    }
+  ];
+
+  const isActivePath = (path) => {
+    if (path === "/user/diet") {
+      return location.pathname === "/user/diet";
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  const activeGoals = stats ? stats.totalGoals - stats.completedGoals : 0;
   const weeklyProgress = stats?.overallCompletionRate || 0;
 
   return (
@@ -103,22 +96,22 @@ const isActivePath = (path) => {
                 onClick={() => navigate(item.path)}
                 className={` cursor-pointer w-full group flex items-center space-x-3 px-3 py-3 rounded-lg transition-all duration-300 text-left ${
                   isActive
-                    ? 'bg-gradient-to-r from-green-500 to-[#8FE877] text-white shadow-lg shadow-green-500/25 transform scale-[1.02]'
-                    : 'text-gray-700 hover:text-green-500 hover:bg-green-500/5 hover:translate-x-1'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-lg shadow-orange-500/25 transform scale-[1.02]'
+                    : 'text-gray-700 hover:text-orange-500 hover:bg-orange-500/5 hover:translate-x-1'
                 }`}
               >
                 <div
                   className={`p-1.5 rounded-md transition-colors duration-300 ${
                     isActive
                       ? 'bg-white/20'
-                      : 'bg-gray-100 group-hover:bg-green-500/10'
+                      : 'bg-gray-100 group-hover:bg-orange-500/10'
                   }`}
                 >
                   <Icon
                     className={`w-4 h-4 transition-colors duration-300 ${
                       isActive
                         ? 'text-white'
-                        : 'text-gray-600 group-hover:text-green-500'
+                        : 'text-gray-600 group-hover:text-orange-500'
                     }`}
                   />
                 </div>
@@ -145,16 +138,14 @@ const isActivePath = (path) => {
             );
           })}
         </nav>
-
-      
       </div>
 
       <div className="p-6 border-t border-gray-200">
         <button
           onClick={handleLogout}
           className="w-full group flex items-center space-x-3 px-3 py-3 rounded-lg 
-                    transition-all duration-300 text-red-700 
-                    hover:text-red-500 hover:bg-red-500/5 hover:translate-x-1 cursor-pointer   text-xl"
+                    transition-all duration-300 text-orange-700 
+                    hover:text-orange-500 hover:bg-orange-500/5 hover:translate-x-1 cursor-pointer   text-xl"
         >
           <span>Logout</span>
           <LogOut />

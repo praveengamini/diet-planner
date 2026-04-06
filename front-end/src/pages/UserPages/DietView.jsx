@@ -1,329 +1,630 @@
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { Flame, RefreshCw, Trash2 } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  Flame,
+  ChevronRight,
+  Edit2,
+  X,
+  AlertCircle,
+  CheckCircle,
+  TrendingUp,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  Droplets,
+  Save,
+  ExternalLink,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  removeItem, replaceItem, addSnack, updateMeal, deleteDietPlan,
+  setCurrentPlan, updateCurrentPlanLocally,
+} from "../../store/diet";
+
+import { toast } from "sonner";
 
 const MEALS = ["breakfast", "lunch", "dinner"];
-
-const MEAL_CONFIG = {
-  breakfast: { label: "Breakfast", short: "B", bg: "bg-orange-500" },
-  lunch:     { label: "Lunch",     short: "L", bg: "bg-orange-700" },
-  dinner:    { label: "Dinner",    short: "D", bg: "bg-orange-900" },
+const MEAL_ICONS = { breakfast: "🌅", lunch: "☀️", dinner: "🌙" };
+const MEAL_COLORS = {
+  breakfast: { bg: "from-amber-50 to-orange-50", accent: "text-amber-700", border: "border-amber-200" },
+  lunch: { bg: "from-emerald-50 to-teal-50", accent: "text-emerald-700", border: "border-emerald-200" },
+  dinner: { bg: "from-indigo-50 to-purple-50", accent: "text-indigo-700", border: "border-indigo-200" },
 };
 
-/* ── Macro tile ─────────────────────────────────────────────────────────── */
-const MacroTile = ({ label, value }) => (
-  <div className="flex-1 flex flex-col items-center bg-orange-50 border border-orange-200 rounded-xl py-2 px-1">
-    <span className="text-[9px] font-bold uppercase tracking-widest text-orange-500 mb-0.5">
-      {label}
-    </span>
-    <span className="text-sm font-semibold text-black">{value}</span>
-  </div>
-);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/* ── Meal content ───────────────────────────────────────────────────────── */
-const MealContent = ({ day, mealType, meal, onDeleteClick, onReplaceClick, onPortionChange }) => {
-  if (!meal) return <p className="text-xs text-gray-400 px-1 py-2">No data available.</p>;
+const calcDailyKcal = (meals) =>
+  MEALS.reduce((s, m) => s + (meals[m]?.calories || 0), 0) +
+  (meals.snacks || []).reduce((s, sn) => s + (sn.calories || 0), 0);
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const NutritionBadge = ({ label, value, unit, color = "gray" }) => {
+  const colors = {
+    gray: "bg-gray-100 text-gray-700",
+    orange: "bg-orange-100 text-orange-700",
+    blue: "bg-blue-100 text-blue-700",
+    green: "bg-green-100 text-green-700",
+    purple: "bg-purple-100 text-purple-700",
+  };
   return (
-    <div className="space-y-4 px-1 pb-1">
-      {/* Macros */}
-      <div className="flex gap-2">
-        <MacroTile label="Protein" value={`${meal.protein_g}g`} />
-        <MacroTile label="Carbs"   value={`${meal.carbs_g}g`} />
-        <MacroTile label="Fats"    value={`${meal.fats_g}g`} />
-        <MacroTile label="Kcal"    value={meal.calories} />
+    <div className={`rounded-xl px-4 py-3 ${colors[color]}`}>
+      <div className="text-xs font-bold uppercase tracking-widest opacity-60 mb-1">{label}</div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-2xl font-black">{value ?? "–"}</span>
+        <span className="text-xs font-semibold opacity-60">{unit}</span>
       </div>
-
-      {/* Ingredients */}
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-2">
-          Ingredients
-        </p>
-        <div className="space-y-1.5">
-          {meal.ingredients?.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-3 py-2 group transition-colors hover:bg-orange-100/60"
-            >
-              <span className="text-sm text-black">{item}</span>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-orange-500 hover:bg-orange-200"
-                  onClick={() => onReplaceClick(day, mealType, i, item)}
-                >
-                  <RefreshCw size={11} />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-red-400 hover:bg-red-100"
-                  onClick={() => onDeleteClick(day, mealType, i, item)}
-                >
-                  <Trash2 size={11} />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Portions */}
-      {Object.keys(meal.portion_sizes || {}).length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-2">
-            Portions
-          </p>
-          <div className="space-y-2">
-            {Object.entries(meal.portion_sizes).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between gap-3">
-                <span className="text-xs text-gray-600 capitalize flex-1">{key}</span>
-                <Input
-                  value={value}
-                  onChange={(e) => onPortionChange(day, mealType, key, e.target.value)}
-                  className="h-7 w-20 text-xs text-right shrink-0 border-orange-200 focus-visible:ring-orange-400"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-/* ── Main component ─────────────────────────────────────────────────────── */
-const DietView = () => {
+const IngredientRow = ({ ingredient, index, onEdit, onDelete }) => (
+  <div className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all duration-150">
+    <div className="flex items-center gap-3 flex-1 min-w-0">
+      <span className="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">
+        {index + 1}
+      </span>
+      <span className="text-sm text-gray-700 font-medium truncate">{ingredient}</span>
+    </div>
+    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <button
+        onClick={() => onEdit(ingredient, index)}
+        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+        title="Change"
+      >
+        <Edit2 size={14} />
+      </button>
+      <button
+        onClick={() => onDelete(ingredient, index)}
+        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+        title="Remove"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  </div>
+);
+
+const SnackRow = ({ snack, index, onDelete }) => (
+  <div className="group flex items-center justify-between px-3 py-2 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all">
+    <span className="text-sm text-gray-700 font-medium">{snack.name}</span>
+    <div className="flex items-center gap-3">
+      <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+        {snack.calories} kcal
+      </span>
+      <button
+        onClick={() => onDelete(index)}
+        className="p-1 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  </div>
+);
+
+const MealCard = ({ mealType, meal, dayKey, planId, isExpanded, onToggle, onRefresh }) => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { currentPlan } = useSelector((state) => state.diet);
-  const [plan, setPlan] = useState(currentPlan?.plan);
+  const colors = MEAL_COLORS[mealType];
+  const [deleteDialog, setDeleteDialog] = useState(null);
+  const [editDialog, setEditDialog] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [snackDialog, setSnackDialog] = useState(false);
+  const [snackForm, setSnackForm] = useState({ name: "", calories: "" });
+  const [saving, setSaving] = useState(false);
 
-  const [deleteTarget, setDeleteTarget]   = useState(null);
-  const [replaceTarget, setReplaceTarget] = useState(null);
-  const [replaceName, setReplaceName]     = useState("");
+  if (!meal) return null;
 
-  if (!plan) {
+  const handleDeleteIngredient = async () => {
+    setSaving(true);
+    const result = await dispatch(removeItem({
+      planId, day: dayKey, mealType, item: deleteDialog.ingredient,
+    }));
+    setSaving(false);
+    if (removeItem.fulfilled.match(result)) {
+      toast.success("Ingredient removed");
+      onRefresh(result.payload);
+    } else {
+      toast.error("Failed to remove");
+    }
+    setDeleteDialog(null);
+  };
+
+  const handleReplaceIngredient = async () => {
+    if (!editValue.trim()) return;
+    setSaving(true);
+    const result = await dispatch(replaceItem({
+      planId, day: dayKey, mealType,
+      oldItem: editDialog.ingredient,
+      newItem: editValue.trim(),
+    }));
+    setSaving(false);
+    if (replaceItem.fulfilled.match(result)) {
+      toast.success("Ingredient updated");
+      onRefresh(result.payload);
+    } else {
+      toast.error("Failed to update");
+    }
+    setEditDialog(null);
+  };
+
+  const handleAddSnack = async () => {
+    if (!snackForm.name.trim() || !snackForm.calories) return;
+    setSaving(true);
+    const result = await dispatch(addSnack({
+      planId, day: dayKey,
+      snack: { name: snackForm.name.trim(), calories: Number(snackForm.calories) },
+    }));
+    setSaving(false);
+    if (addSnack.fulfilled.match(result)) {
+      toast.success("Snack added");
+      onRefresh(result.payload);
+    } else {
+      toast.error("Failed to add snack");
+    }
+    setSnackDialog(false);
+    setSnackForm({ name: "", calories: "" });
+  };
+
+  const handleDeleteSnack = async (snackIndex) => {
+    // Optimistically remove from local state then sync
+    const updatedSnacks = (meal.snacks || []).filter((_, i) => i !== snackIndex);
+    const updatedMeal = { ...meal, snacks: updatedSnacks };
+    setSaving(true);
+    const result = await dispatch(updateMeal({ planId, day: dayKey, mealType, newMeal: updatedMeal }));
+    setSaving(false);
+    if (updateMeal.fulfilled.match(result)) {
+      toast.success("Snack removed");
+      onRefresh(result.payload);
+    } else {
+      toast.error("Failed");
+    }
+  };
+
+  return (
+    <div className={`rounded-2xl overflow-hidden transition-all duration-300 border ${
+      isExpanded ? `${colors.border} bg-white shadow-md` : "border-gray-100 bg-white/60 hover:border-gray-200"
+    }`}>
+      {/* Header */}
+      <button
+        onClick={onToggle}
+        type="button"
+        className={`w-full px-5 py-4 flex items-center justify-between transition-all ${
+          isExpanded ? `bg-gradient-to-r ${colors.bg}` : "hover:bg-gray-50/50"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-xl">{MEAL_ICONS[mealType]}</span>
+          <div className="text-left">
+            <div className="font-bold text-gray-900 capitalize">{mealType}</div>
+            {meal.name && <div className="text-xs text-gray-500">{meal.name}</div>}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {saving && <RefreshCw size={14} className="text-orange-400 animate-spin" />}
+          <div className="text-right">
+            <div className="font-black text-gray-900">{meal.calories}<span className="text-xs text-gray-400 font-semibold ml-1">kcal</span></div>
+          </div>
+          <ChevronRight size={18} className={`text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+        </div>
+      </button>
+
+      {/* Body */}
+      {isExpanded && (
+        <div className="px-5 py-4 space-y-5">
+          {/* Macros */}
+          <div className="grid grid-cols-4 gap-2">
+            <NutritionBadge label="Protein" value={meal.protein_g} unit="g" color="blue" />
+            <NutritionBadge label="Carbs" value={meal.carbs_g} unit="g" color="orange" />
+            <NutritionBadge label="Fat" value={meal.fats_g} unit="g" color="purple" />
+            <NutritionBadge label="Fiber" value={meal.fiber_g} unit="g" color="green" />
+          </div>
+
+          {/* Ingredients */}
+          {meal.ingredients?.length > 0 && (
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Ingredients</div>
+              <div className="space-y-0.5">
+                {meal.ingredients.map((ing, idx) => (
+                  <IngredientRow
+                    key={idx}
+                    ingredient={ing}
+                    index={idx}
+                    onEdit={(ingredient) => { setEditDialog({ ingredient, index: idx }); setEditValue(ingredient); }}
+                    onDelete={(ingredient) => setDeleteDialog({ ingredient, index: idx })}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Portions */}
+          {Object.keys(meal.portion_sizes || {}).length > 0 && (
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Portions</div>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(meal.portion_sizes).map(([k, v]) => (
+                  <div key={k} className="flex justify-between items-center px-3 py-2 bg-gray-50 rounded-lg text-sm">
+                    <span className="text-gray-600 font-medium capitalize truncate">{k}</span>
+                    <span className="text-gray-800 font-bold ml-2 shrink-0">{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Snacks */}
+          {mealType === "dinner" && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-bold uppercase tracking-widest text-gray-400">Snacks</div>
+                <button
+                  onClick={() => setSnackDialog(true)}
+                  className="flex items-center gap-1 text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded-lg transition-colors"
+                >
+                  <Plus size={12} /> Add Snack
+                </button>
+              </div>
+              {(meal.snacks || []).length === 0 ? (
+                <p className="text-xs text-gray-400 italic px-3">No snacks added</p>
+              ) : (
+                <div className="space-y-1">
+                  {(meal.snacks || []).map((sn, i) => (
+                    <SnackRow key={i} snack={sn} index={i} onDelete={handleDeleteSnack} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Delete Ingredient Dialog */}
+      <Dialog open={!!deleteDialog} onOpenChange={(o) => !o && setDeleteDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle size={18} /> Remove Ingredient
+            </DialogTitle>
+            <DialogDescription>
+              Remove <strong>"{deleteDialog?.ingredient}"</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialog(null)}>Cancel</Button>
+            <Button onClick={handleDeleteIngredient} className="bg-red-600 hover:bg-red-700 text-white">
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit/Replace Dialog */}
+      <Dialog open={!!editDialog} onOpenChange={(o) => !o && setEditDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-600">
+              <Edit2 size={18} /> Replace Ingredient
+            </DialogTitle>
+            <DialogDescription>
+              Replacing <strong>"{editDialog?.ingredient}"</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleReplaceIngredient()}
+            placeholder="New ingredient..."
+            className="mt-2"
+          />
+          <DialogFooter className="gap-2 mt-4">
+            <Button variant="outline" onClick={() => setEditDialog(null)}>Cancel</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                navigate("/user/alternatives", {
+                  state: {
+                    foodItem: editDialog?.ingredient,
+                    replaceContext: { planId, day: dayKey, mealType, oldItem: editDialog?.ingredient },
+                  },
+                });
+                setEditDialog(null);
+              }}
+              className="border-blue-300 text-blue-600"
+            >
+              <ExternalLink size={14} className="mr-1" /> Browse Alternatives
+            </Button>
+            <Button
+              onClick={handleReplaceIngredient}
+              disabled={!editValue.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <CheckCircle size={14} className="mr-1" /> Replace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Snack Dialog */}
+      <Dialog open={snackDialog} onOpenChange={(o) => !o && setSnackDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <Plus size={18} /> Add Snack
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <Input
+              placeholder="Snack name (e.g. Apple)"
+              value={snackForm.name}
+              onChange={(e) => setSnackForm((f) => ({ ...f, name: e.target.value }))}
+            />
+            <Input
+              type="number"
+              placeholder="Calories (kcal)"
+              value={snackForm.calories}
+              onChange={(e) => setSnackForm((f) => ({ ...f, calories: e.target.value }))}
+            />
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setSnackDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleAddSnack}
+              disabled={!snackForm.name.trim() || !snackForm.calories}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Add
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+const DietView = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { currentPlan, plans } = useSelector((s) => s.diet);
+
+  // Resolve plan from redux
+  const planDoc = useMemo(() => {
+    if (currentPlan?._id === id) return currentPlan;
+    return plans.find((p) => p._id === id) || null;
+  }, [currentPlan, plans, id]);
+
+  const [localPlan, setLocalPlan] = useState(planDoc);
+  const [expandedMeals, setExpandedMeals] = useState({});
+  const [activeDay, setActiveDay] = useState(null);
+  const [deletePlanDialog, setDeletePlanDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  if (!planDoc) {
+    return <LoadingSpinner />;
+  }
+  useEffect(() => {
+    if (planDoc) {
+      setLocalPlan(planDoc);
+      if (!activeDay) setActiveDay(Object.keys(planDoc.plan?.weekly_plan || {})[0]);
+    }
+  }, [planDoc]);
+
+  const onRefresh = useCallback((updatedDoc) => {
+    setLocalPlan(updatedDoc);
+    dispatch(updateCurrentPlanLocally(updatedDoc));
+  }, [dispatch]);
+
+  const toggleMeal = useCallback((day, mealType) => {
+    setExpandedMeals((prev) => {
+      const key = `${day}:${mealType}`;
+      return { ...prev, [key]: !prev[key] };
+    });
+  }, []);
+
+  const handleDeletePlan = async () => {
+    setDeleting(true);
+    const result = await dispatch(deleteDietPlan(id));
+    setDeleting(false);
+    if (deleteDietPlan.fulfilled.match(result)) {
+      toast.success("Plan deleted");
+      navigate("/user/diet/history");
+    } else {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const weeklyStats = useMemo(() => {
+    if (!localPlan?.plan?.weekly_plan) return {};
+    const days = Object.entries(localPlan.plan.weekly_plan);
+    const totalKcal = days.reduce((s, [, m]) => s + calcDailyKcal(m), 0);
+    const avgKcal = Math.round(totalKcal / days.length);
+    const totalProtein = days.reduce(
+      (s, [, m]) => s + MEALS.reduce((ss, mt) => ss + (m[mt]?.protein_g || 0), 0), 0
+    );
+    return { totalKcal, avgKcal, days: days.length, totalProtein };
+  }, [localPlan]);
+
+  if (!localPlan) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-orange-50">
-        <div className="text-center space-y-3">
-          <p className="text-black font-medium">No plan selected</p>
-          <Button onClick={() => navigate(-1)} className="bg-orange-500 hover:bg-orange-600 text-white">
-            Go back
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle size={48} className="text-gray-400 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-700 mb-2">Plan not found</h1>
+          <Button onClick={() => navigate("/user/diet/history")} variant="outline">
+            ← Back to History
           </Button>
         </div>
       </div>
     );
   }
 
-  const openDeleteDialog  = (day, mealType, i, name) => setDeleteTarget({ day, mealType, itemIndex: i, itemName: name });
-  const openReplaceDialog = (day, mealType, i, name) => { setReplaceTarget({ day, mealType, itemIndex: i, itemName: name }); setReplaceName(""); };
-
-  const confirmDelete = () => {
-    const { day, mealType, itemIndex } = deleteTarget;
-    const updated = structuredClone(plan);
-    updated.weekly_plan[day][mealType].ingredients.splice(itemIndex, 1);
-    setPlan(updated);
-    setDeleteTarget(null);
-  };
-
-  const confirmReplace = () => {
-    if (!replaceName.trim()) return;
-    const { day, mealType, itemIndex } = replaceTarget;
-    const updated = structuredClone(plan);
-    updated.weekly_plan[day][mealType].ingredients[itemIndex] = replaceName.trim();
-    setPlan(updated);
-    setReplaceTarget(null);
-  };
-
-  const goToAlternatives = () => {
-    navigate("/user/alternatives", {
-      state: { foodItem: replaceTarget.itemName, replaceContext: { day: replaceTarget.day, mealType: replaceTarget.mealType, itemIndex: replaceTarget.itemIndex } },
-    });
-    setReplaceTarget(null);
-  };
-
-  const handlePortionChange = (day, mealType, key, value) => {
-    const updated = structuredClone(plan);
-    updated.weekly_plan[day][mealType].portion_sizes[key] = value;
-    setPlan(updated);
-  };
-
-  const days = Object.entries(plan.weekly_plan);
+  const weeklyPlan = localPlan.plan?.weekly_plan || {};
+  const days = Object.keys(weeklyPlan);
+  const currentDayMeals = activeDay ? weeklyPlan[activeDay] : null;
 
   return (
-    <div className="min-h-screen bg-orange-50 px-5 py-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/20">
+      {/* Top Nav */}
+<div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200/50">
+  <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+    <button
+      onClick={() => navigate("/user/diet/history")}
+      className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold text-sm transition-colors"
+    >
+      <ArrowLeft size={18} /> Plans
+    </button>
+ 
+    <div className="text-center">
+      <div className="font-black text-gray-900 text-lg capitalize">
+        {localPlan.profile?.goal?.replace("_", " ")} Plan
+      </div>
+      <div className="text-xs text-gray-400">
+        {new Date(localPlan.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+      </div>
+    </div>
+ 
+    <div className="flex items-center gap-2">
+      {/* NEW: Progress Tracking Button */}
+      <button
+        onClick={() => navigate(`/user/diet/${id}/progress`)}
+        className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-semibold text-sm px-3 py-1.5 rounded-xl hover:bg-green-50 transition-all border border-green-200"
+      >
+        <CheckCircle size={16} /> Track
+      </button>
+      
+      <button
+        onClick={() => setDeletePlanDialog(true)}
+        className="flex items-center gap-1.5 text-red-500 hover:text-red-700 font-semibold text-sm px-3 py-1.5 rounded-xl hover:bg-red-50 transition-all"
+      >
+        <Trash2 size={16} /> Delete
+      </button>
+    </div>
+  </div>
+</div>
 
-        {/* Page header */}
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-black">Weekly Diet Plan</h1>
-          <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-xs rounded-full">
-            {days.length} days
-          </Badge>
+      {/* Stats Bar */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard label="Daily Target" value={localPlan.plan.daily_calories_target} unit="kcal" icon="🎯" color="orange" />
+          <StatCard label="Avg/Day" value={weeklyStats.avgKcal} unit="kcal" icon="📊" color="blue" />
+          <StatCard label="Water Daily" value={localPlan.plan.daily_water_intake_liters} unit="L" icon="💧" color="sky" />
+          <StatCard label="Days Planned" value={weeklyStats.days} unit="days" icon="📅" color="green" />
         </div>
-
-        {/* Outer accordion — days */}
-        <Accordion type="multiple" className="space-y-3">
-          {days.map(([day, meals]) => {
-            const totalKcal = MEALS.reduce((s, m) => s + (meals[m]?.calories || 0), 0);
-
-            return (
-              <AccordionItem
-                key={day}
-                value={day}
-                className="bg-white border border-orange-200 rounded-2xl overflow-hidden shadow-none"
-              >
-                <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-orange-50/60 transition-colors group [&>svg]:hidden">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3">
-                      {/* Colored dot */}
-                      <span className="w-2.5 h-2.5 rounded-full bg-orange-400 group-data-[state=open]:bg-orange-600 transition-colors" />
-                      <span className="text-base font-semibold text-black capitalize">{day}</span>
-                    </div>
-                    <div className="flex items-center gap-3 mr-1">
-                      <span className="text-xs font-medium text-orange-500 flex items-center gap-1">
-                        <Flame size={12} />
-                        {totalKcal} kcal
-                      </span>
-                      {/* Custom chevron */}
-                      <svg
-                        className="w-4 h-4 text-orange-300 transition-transform duration-200 group-data-[state=open]:rotate-180"
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      >
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-
-                <AccordionContent className="px-4 pb-4">
-                  {/* Inner accordion — meals */}
-                  <Accordion type="multiple" className="space-y-2 pt-2">
-                    {MEALS.map((mealType) => {
-                      const meal = meals[mealType];
-                      const cfg  = MEAL_CONFIG[mealType];
-
-                      return (
-                        <AccordionItem
-                          key={mealType}
-                          value={mealType}
-                          className="border border-orange-100 rounded-xl overflow-hidden"
-                        >
-                          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-orange-50 transition-colors group [&>svg]:hidden">
-                            <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-3">
-                                {/* Meal icon badge */}
-                                <span className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center text-xs font-bold text-white shrink-0`}>
-                                  {cfg.short}
-                                </span>
-                                <div className="text-left">
-                                  <p className="text-sm font-semibold text-black leading-tight">{cfg.label}</p>
-                                  {meal?.name && (
-                                    <p className="text-xs text-orange-600 leading-tight mt-0.5 truncate max-w-[200px]">
-                                      {meal.name}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 mr-1">
-                                {meal?.calories && (
-                                  <span className="text-[11px] font-medium text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
-                                    {meal.calories} kcal
-                                  </span>
-                                )}
-                                <svg
-                                  className="w-3.5 h-3.5 text-orange-300 transition-transform duration-200 group-data-[state=open]:rotate-180"
-                                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                                >
-                                  <path d="M6 9l6 6 6-6" />
-                                </svg>
-                              </div>
-                            </div>
-                          </AccordionTrigger>
-
-                          <AccordionContent className="px-4 pt-3 pb-2 bg-white">
-                            <MealContent
-                              day={day}
-                              mealType={mealType}
-                              meal={meal}
-                              onDeleteClick={openDeleteDialog}
-                              onReplaceClick={openReplaceDialog}
-                              onPortionChange={handlePortionChange}
-                            />
-                          </AccordionContent>
-                        </AccordionItem>
-                      );
-                    })}
-                  </Accordion>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
       </div>
 
-      {/* Delete Dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-black">Remove ingredient?</DialogTitle>
-            <DialogDescription>
-              <span className="font-semibold text-black">"{deleteTarget?.itemName}"</span> will be permanently removed from your plan.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-            <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={confirmDelete}>Remove</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Day Tabs */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {days.map((day) => {
+            const kcal = calcDailyKcal(weeklyPlan[day]);
+            const target = localPlan.plan.daily_calories_target;
+            const pct = Math.min(100, Math.round((kcal / target) * 100));
+            return (
+              <button
+                key={day}
+                onClick={() => setActiveDay(day)}
+                className={`shrink-0 flex flex-col items-center px-4 py-3 rounded-2xl border-2 transition-all min-w-[80px] ${
+                  activeDay === day
+                    ? "border-orange-400 bg-orange-50 shadow-sm"
+                    : "border-gray-100 bg-white hover:border-gray-200"
+                }`}
+              >
+                <span className={`text-xs font-black uppercase tracking-wide ${activeDay === day ? "text-orange-600" : "text-gray-500"}`}>
+                  {day.slice(0, 3)}
+                </span>
+                <span className={`text-base font-black mt-0.5 ${activeDay === day ? "text-orange-700" : "text-gray-700"}`}>
+                  {kcal}
+                </span>
+                <span className="text-[10px] text-gray-400 font-medium">kcal</span>
+                <div className="w-full h-1 rounded-full bg-gray-100 mt-2 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${pct > 105 ? "bg-red-400" : pct > 90 ? "bg-green-400" : "bg-orange-300"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      {/* Replace Dialog */}
-      <Dialog open={!!replaceTarget} onOpenChange={(o) => !o && setReplaceTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
+      {/* Meals */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-3">
+        {activeDay && currentDayMeals && MEALS.map((mealType) => (
+          <MealCard
+            key={mealType}
+            mealType={mealType}
+            meal={currentDayMeals[mealType]}
+            dayKey={activeDay}
+            planId={id}
+            isExpanded={expandedMeals[`${activeDay}:${mealType}`] || false}
+            onToggle={() => toggleMeal(activeDay, mealType)}
+            onRefresh={onRefresh}
+          />
+        ))}
+
+        {/* Rationale Card */}
+        {localPlan.plan.nutritional_rationale && (
+          <div className="mt-8 p-5 bg-blue-50 rounded-2xl border border-blue-100">
+            <div className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-2">Nutritional Rationale</div>
+            <p className="text-sm text-blue-800 leading-relaxed">{localPlan.plan.nutritional_rationale}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Delete Plan Dialog */}
+      <Dialog open={deletePlanDialog} onOpenChange={(o) => !o && setDeletePlanDialog(false)}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-black">Replace ingredient</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 size={18} /> Delete Plan
+            </DialogTitle>
             <DialogDescription>
-              Replacing <span className="font-semibold text-black">"{replaceTarget?.itemName}"</span>. Type a replacement or browse AI suggestions.
+              This will permanently delete this diet plan. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <Input
-            placeholder="e.g. Greek yogurt"
-            value={replaceName}
-            onChange={(e) => setReplaceName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && confirmReplace()}
-            className="border-orange-200 focus-visible:ring-orange-400"
-          />
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50" onClick={goToAlternatives}>
-              Browse alternatives
-            </Button>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white" disabled={!replaceName.trim()} onClick={confirmReplace}>
-              Replace
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletePlanDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleDeletePlan}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? "Deleting..." : "Delete Plan"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+const StatCard = ({ label, value, unit, icon, color }) => {
+  const colors = {
+    orange: "from-orange-50 to-amber-50 border-orange-100 text-orange-600",
+    blue: "from-blue-50 to-indigo-50 border-blue-100 text-blue-600",
+    sky: "from-sky-50 to-cyan-50 border-sky-100 text-sky-600",
+    green: "from-green-50 to-emerald-50 border-green-100 text-green-600",
+  };
+  return (
+    <div className={`rounded-2xl border bg-gradient-to-br p-4 ${colors[color]}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">{icon}</span>
+        <span className="text-xs font-bold uppercase tracking-widest opacity-70">{label}</span>
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-2xl font-black">{value ?? "–"}</span>
+        <span className="text-xs font-semibold opacity-60">{unit}</span>
+      </div>
     </div>
   );
 };

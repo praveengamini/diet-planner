@@ -22,10 +22,12 @@ import { useAuthInitialize } from './utilities/hooks/useAuthInitialize';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ChangePassword from './pages/auth/ChangePassword';
 import AdminDashBoard from './pages/AdminPages/AdminDashBoard';
-import DietPlanner from './pages/UserPages/DietPlanner'
-import DietHistory  from './pages/UserPages/DietHistory'
-import DietView from './pages/UserPages/DietView'
+import UserDashboard from './pages/UserPages/UserDashboard';
+import DietPlanner from './pages/UserPages/DietPlanner';
+import DietHistory from './pages/UserPages/DietHistory';
+import DietView from './pages/UserPages/DietView';
 import Alternatives from './pages/UserPages/Alternatives';
+import ProgressTracking from './pages/UserPages/ProgressTracking';
 
 const App = () => {
   const { isLoading: authInitLoading } = useAuthInitialize();
@@ -50,19 +52,20 @@ const App = () => {
             <Route path='change-password' element={<ChangePassword/>}/>
           </Route>
           <Route path="/user" element={<TaskLayout />}>
+            <Route path='dashboard' element={<UserDashboard />} />
             <Route path='home' element={<UserHome/>} />
             <Route path='profile' element={<UserProfile/>} />
             <Route path='set-new-password' element={<SetNewPassword/>} />
             <Route path='diet' element={<DietPlanner />} />
             <Route path='diet/history' element={<DietHistory />} />
             <Route path='diet/:id' element={<DietView />} />
-              <Route path="alternatives" element={<Alternatives />} />
-
-            </Route>
-            <Route path='/admin' element={<AdminLayout/>}>
-              <Route path='dashboard' element={<AdminDashBoard/>} />
-              <Route path='profile' element={<AdminProfile/>} />
-              <Route path='set-new-password' element={<SetNewPassword/>}/>
+            <Route path='diet/:id/progress' element={<ProgressTracking />} />
+            <Route path="alternatives" element={<Alternatives />} />
+          </Route>
+          <Route path='/admin' element={<AdminLayout/>}>
+            <Route path='dashboard' element={<AdminDashBoard/>} />
+            <Route path='profile' element={<AdminProfile/>} />
+            <Route path='set-new-password' element={<SetNewPassword/>}/>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -73,4 +76,3 @@ const App = () => {
 };
 
 export default App;
-          
