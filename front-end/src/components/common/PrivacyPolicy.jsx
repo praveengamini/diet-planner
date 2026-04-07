@@ -161,10 +161,10 @@ const PrivacyPolicy = () => {
           <p className="text-green-700">
             For questions, reach out to{' '}
             <a 
-              href="mailto:praveengamini009@gmail.com" 
+              href="mailto:luckylashya07@gmail.com" 
               className="text-green-600 hover:text-green-800 underline font-semibold"
             >
-              praveengamini009@gmail.com
+              luckylashya07@gmail.com
             </a>
           </p>
         </div>

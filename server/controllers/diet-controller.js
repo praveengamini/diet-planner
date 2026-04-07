@@ -1,8 +1,8 @@
 const axios = require("axios");
 const DietPlan = require("../models/DietPlan");
 
-const AI_SERVICE_URL = "http://127.0.0.1:8000/api/v1/planner/generate";
-const ALT_SERVICE_URL = "http://127.0.0.1:8000/api/v1/alternatives/suggest";
+const AI_SERVICE_URL = "http://127.0.0.1:10000/api/v1/planner/generate";
+const ALT_SERVICE_URL = "http://127.0.0.1:10000/api/v1/alternatives/suggest";
 
 const generateDietPlan = async (req, res) => {
   try {

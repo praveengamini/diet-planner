@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { generateDiet } from "../../store/diet";
 import { toast } from "sonner";
+import VoiceAssistant from "../../components/User/Voiceassistant";
 
 const ACTIVITY_LEVELS = [
   { value: "sedentary", label: "Sedentary", desc: "Little or no exercise" },
@@ -173,8 +174,17 @@ const DietPlanner = () => {
               <h2 className="text-xl font-bold text-gray-800 mb-4">Your Profile</h2>
 
               <div className="grid grid-cols-2 gap-4">
+                {/* Age Field */}
                 <div>
-                  <label className="text-sm font-semibold text-gray-600 block mb-1">Age</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-gray-600">Age</label>
+                    <VoiceAssistant
+                      fieldName="Age"
+                      fieldValue={form.profile.age}
+                      onValueChange={(val) => set("profile", "age", val)}
+                      expectedType="number"
+                    />
+                  </div>
                   <input
                     type="number" min="2" max="100"
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -183,8 +193,22 @@ const DietPlanner = () => {
                     placeholder="10"
                   />
                 </div>
+
+                {/* Gender Field */}
                 <div>
-                  <label className="text-sm font-semibold text-gray-600 block mb-1">Gender</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-gray-600">Gender</label>
+                    <VoiceAssistant
+                      fieldName="Gender"
+                      fieldValue={form.profile.gender}
+                      onValueChange={(val) => set("profile", "gender", val)}
+                      expectedType="select"
+                      options={[
+                        { value: "male", label: "Male" },
+                        { value: "female", label: "Female" },
+                      ]}
+                    />
+                  </div>
                   <select
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
                     value={form.profile.gender}
@@ -194,8 +218,18 @@ const DietPlanner = () => {
                     <option value="female">Female</option>
                   </select>
                 </div>
+
+                {/* Weight Field */}
                 <div>
-                  <label className="text-sm font-semibold text-gray-600 block mb-1">Weight (kg)</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-gray-600">Weight (kg)</label>
+                    <VoiceAssistant
+                      fieldName="Weight"
+                      fieldValue={form.profile.weight_kg}
+                      onValueChange={(val) => set("profile", "weight_kg", val)}
+                      expectedType="number"
+                    />
+                  </div>
                   <input
                     type="number" min="5" max="300"
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -204,8 +238,18 @@ const DietPlanner = () => {
                     placeholder="65"
                   />
                 </div>
+
+                {/* Height Field */}
                 <div>
-                  <label className="text-sm font-semibold text-gray-600 block mb-1">Height (cm)</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-gray-600">Height (cm)</label>
+                    <VoiceAssistant
+                      fieldName="Height"
+                      fieldValue={form.profile.height_cm}
+                      onValueChange={(val) => set("profile", "height_cm", val)}
+                      expectedType="number"
+                    />
+                  </div>
                   <input
                     type="number" min="50" max="250"
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -216,8 +260,18 @@ const DietPlanner = () => {
                 </div>
               </div>
 
+              {/* Activity Level */}
               <div>
-                <label className="text-sm font-semibold text-gray-600 block mb-2">Activity Level</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-600">Activity Level</label>
+                  <VoiceAssistant
+                    fieldName="Activity Level"
+                    fieldValue={form.profile.activity_level}
+                    onValueChange={(val) => set("profile", "activity_level", val)}
+                    expectedType="select"
+                    options={ACTIVITY_LEVELS.map(a => ({ value: a.value, label: a.label }))}
+                  />
+                </div>
                 <div className="space-y-2">
                   {ACTIVITY_LEVELS.map((lvl) => (
                     <button
@@ -244,8 +298,18 @@ const DietPlanner = () => {
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Diet Preferences</h2>
 
+              {/* Goal Selection */}
               <div>
-                <label className="text-sm font-semibold text-gray-600 block mb-2">Your Goal</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-600">Your Goal</label>
+                  <VoiceAssistant
+                    fieldName="Goal"
+                    fieldValue={form.goal}
+                    onValueChange={(val) => { set("profile", "goal", val); set(null, "goal", val); }}
+                    expectedType="select"
+                    options={GOALS.map(g => ({ value: g.value, label: g.label }))}
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   {GOALS.map((g) => (
                     <button
@@ -265,8 +329,18 @@ const DietPlanner = () => {
                 </div>
               </div>
 
+              {/* Diet Type */}
               <div>
-                <label className="text-sm font-semibold text-gray-600 block mb-2">Diet Type</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-600">Diet Type</label>
+                  <VoiceAssistant
+                    fieldName="Diet Type"
+                    fieldValue={form.diet_type}
+                    onValueChange={(val) => set(null, "diet_type", val)}
+                    expectedType="select"
+                    options={DIET_TYPES.map(d => ({ value: d.value, label: d.label }))}
+                  />
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {DIET_TYPES.map((d) => (
                     <button
@@ -286,10 +360,17 @@ const DietPlanner = () => {
                 </div>
               </div>
 
+              {/* Meals Per Day */}
               <div>
-                <label className="text-sm font-semibold text-gray-600 block mb-2">
-                  Meals per Day
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-600">Meals per Day</label>
+                  <VoiceAssistant
+                    fieldName="Meals per Day"
+                    fieldValue={String(form.meals_per_day)}
+                    onValueChange={(val) => set(null, "meals_per_day", Number(val))}
+                    expectedType="number"
+                  />
+                </div>
                 <div className="flex gap-2">
                   {[2, 3, 4, 5].map((n) => (
                     <button
@@ -315,15 +396,29 @@ const DietPlanner = () => {
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Health Information</h2>
 
+              {/* Allergies */}
               <div>
-                <label className="text-sm font-semibold text-gray-600 block mb-2">Allergies</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-600">Allergies</label>
+                  <VoiceAssistant
+                    fieldName="Allergies"
+                    fieldValue={form.allergies.join(", ")}
+                    onValueChange={(val) => {
+                      if (!form.allergies.includes(val)) {
+                        setForm((f) => ({ ...f, allergies: [...f.allergies, val] }));
+                      }
+                    }}
+                    expectedType="select"
+                    options={COMMON_ALLERGIES}
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {COMMON_ALLERGIES.map((a) => (
                     <button
                       key={a}
                       type="button"
                       onClick={() => toggleAllergy(a)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-semibold border-2 transition-all ${
+                      className={`px-3 py-1.5 rounded-full text-sm font-semibold border-2 transition-all capitalize ${
                         form.allergies.includes(a)
                           ? "border-red-400 bg-red-50 text-red-700"
                           : "border-gray-200 text-gray-500 hover:border-gray-300"
@@ -336,8 +431,21 @@ const DietPlanner = () => {
                 </div>
               </div>
 
+              {/* Medical Conditions */}
               <div>
-                <label className="text-sm font-semibold text-gray-600 block mb-2">Medical Conditions</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-600">Medical Conditions</label>
+                  <VoiceAssistant
+                    fieldName="Medical Conditions"
+                    fieldValue={form.medical_conditions.join(", ")}
+                    onValueChange={(val) => toggleCondition(val)}
+                    expectedType="select"
+                    options={MEDICAL_CONDITIONS.map(c => ({ 
+                      value: c, 
+                      label: c.replace(/_/g, " ").toUpperCase() 
+                    }))}
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {MEDICAL_CONDITIONS.map((c) => (
                     <button
@@ -351,7 +459,7 @@ const DietPlanner = () => {
                       }`}
                     >
                       {form.medical_conditions.includes(c) ? "✓ " : "+ "}
-                      {c}
+                      {c === "none" ? "None" : c.replace(/_/g, " ")}
                     </button>
                   ))}
                 </div>

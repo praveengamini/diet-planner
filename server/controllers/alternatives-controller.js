@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 const axios = require("axios");
  
-const ALT_SERVICE_URL = "http://127.0.0.1:8000/api/v1/alternatives/suggest";
+const ALT_SERVICE_URL = "http://127.0.0.1:10000/api/v1/alternatives/suggest";
  
 const suggestAlternatives = async (req, res) => {
   try {

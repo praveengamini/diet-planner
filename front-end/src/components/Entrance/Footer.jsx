@@ -46,31 +46,21 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-orange-500" />
-                <a href="https://mail.google.com/mail/u/0/?to=praveengamini009@gmail.com&fs=1&tf=cm" target="_blank" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
-                  praveengamini009@gmail.com
+                <a href="https://mail.google.com/mail/u/0/?to=luckylashya07@gmail.com&fs=1&tf=cm" target="_blank" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
+                  luckylashya07@gmail.com
                 </a>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-4 h-4 text-orange-500" />
-                <a href="tel:+917013268191" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
-                  +91 7013268191
+                <a href="tel:+9190595 84349" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
+                  +91 90595 84349
                 </a>
               </li>
-              <li className="flex items-center space-x-2">
-                <Globe className="w-4 h-4 text-orange-500" />
-                <a href="https://praveengamini.netlify.app" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
-                  praveengamini.netlify.app
-                </a>
-              </li>
-              <li className="flex items-center space-x-2">
-                <Linkedin className="w-4 h-4 text-orange-500" />
-                <a href="https://www.linkedin.com/in/praveen-gamini-3bb729273" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
-                  LinkedIn
-                </a>
-              </li>
+        
+        
               <li className="flex items-center space-x-2">
                 <Github className="w-4 h-4 text-orange-500" />
-                <a href="https://github.com/praveengamini" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
+                <a href="https://github.com/saranya01-ctrl" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-orange-500 transition-colors duration-200">
                   GitHub
                 </a>
               </li>
@@ -81,7 +71,7 @@ const Footer = () => {
         <div className="border-t border-orange-100 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm">
-              © 2025 Praveen Gamini. All rights reserved.
+              © 2026 LashyaSaranya. All rights reserved.
             </p>
             <div className="flex items-center mt-4 md:mt-0 space-x-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
