@@ -79,14 +79,17 @@ const VoiceAssistant = ({
   // 📡 SEND TO DEEPGRAM
   const sendToDeepgram = async (blob) => {
     try {
-      const res = await fetch("https://api.deepgram.com/v1/listen", {
-        method: "POST",
-        headers: {
-          Authorization: `Token ${DEEPGRAM_API_KEY}`,
-          "Content-Type": "audio/webm",
-        },
-        body: blob,
-      });
+    const res = await fetch(
+  "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Token ${DEEPGRAM_API_KEY}`,
+      "Content-Type": "audio/webm",
+    },
+    body: blob,
+  }
+);
 
       const data = await res.json();
 
